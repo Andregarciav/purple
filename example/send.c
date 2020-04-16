@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     txbuffer[0] = 'g';
     int buffer_size = 0;
     ssize_t readpru, writepipe, prime_char, pru_clock_command;
-    struct timeval *tempoInicio, *tempoFim;
+    struct timeval tempoInicio, tempoFim;
     double t0, t1, total;
     
     // Create a file
