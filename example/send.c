@@ -22,6 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 
 char *geraPayload(int N){
     uint8_t byte = 0;
@@ -31,7 +32,7 @@ char *geraPayload(int N){
         return NULL;
     int i = 0;
     srand((unsigned) time(&semente));
-    for(i=LEN; i < N ; i++){
+    for(i=0; i < N ; i++){
         byte = rand() % (126-33+1)+33; //range da função rand
         pkt[i] = byte;
     }
@@ -47,7 +48,7 @@ int main(int argc, char **argv) {
     txbuffer[0] = 'g';
     int buffer_size = 0;
     ssize_t readpru, writepipe, prime_char, pru_clock_command;
-    struct timeval tempoInicio, tempoFim;
+    struct timeval *tempoInicio, *tempoFim;
     double t0, t1, total;
     
     // Create a file
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
         conteudo = geraPayload(buffer_size);
 
         for(int i = 0 ; i < buffer_size; i++){
-		    txbuffer[i+1] = conteudo[1][i];
+		    txbuffer[i+1] = conteudo[i];
 		    //printf("%c\n", txbuffer[i+1]);
         }
 
