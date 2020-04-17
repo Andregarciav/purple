@@ -25,9 +25,9 @@
 #include <sys/time.h>
 
 char *geraPayload(int N){
-    uint8_t byte = 0;
+    char byte = 0;
     time_t semente;
-    uint8_t *pkt = malloc ((N)*sizeof(uint8_t));
+    char *pkt = (char *) malloc ((N)*sizeof(char));
     if (!pkt)
         return NULL;
     int i = 0;
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     // char  txbuffer[100];
     char *txbuffer;
     char *conteudo;
-    txbuffer[0] = 'g';
+   // txbuffer[0] = 'g';
     int buffer_size = 0;
     ssize_t readpru, writepipe, prime_char, pru_clock_command;
     struct timeval tempoInicio, tempoFim;
@@ -61,12 +61,13 @@ int main(int argc, char **argv) {
 		//     //printf("%c\n", txbuffer[i+1]);
         // }
         buffer_size = atoi(argv[1]);
-        txbuffer = (char*)malloc ((buffer_size + 1)*sizeof(char));
+        printf ("buffer_size: %d\n", buffer_size);
+	txbuffer = (char*)malloc ((buffer_size + 1)*sizeof(char));
         conteudo = geraPayload(buffer_size);
-
+	txbuffer[0] = 'g';
         for(int i = 0 ; i < buffer_size; i++){
 		    txbuffer[i+1] = conteudo[i];
-		    //printf("%c\n", txbuffer[i+1]);
+		    printf("%c\n", txbuffer[i+1]);
         }
 
         pru_clock = open("/dev/rpmsg_pru31", O_RDWR);
