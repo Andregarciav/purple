@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     if (soundfifo < 0)
       printf("Failed to open msg.log");
     printf("The node is currently listening on the light signals...\n");
-	//  Open the character device to PRU0.
+	  //  Open the character device to PRU0.
     pru_data = open("/dev/rpmsg_pru30", O_RDWR);
     if (pru_data < 0)
       printf("Failed to open pru character device rpmsg_pru30.");
@@ -41,7 +41,8 @@ int main(int argc, char **argv) {
     //  This is the main data transfer loop.
     //  Note that the number of transfers is finite.
     //  This can be changed to a while(1) to run forever.
-    for (int i = 0; i < 1; i++) {
+    while (1){
+    // for (int i = 0; i < 1; i++) {
       readpru = read(pru_data, sinebuf, 490);
       writepipe = write(soundfifo, sinebuf, 490);
       printf("%s\n", sinebuf);

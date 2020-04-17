@@ -31,7 +31,7 @@
 #define VIRTIO_CONFIG_S_DRIVER_OK 4
 
 //  Buffer used for PRU to ARM communication.
-char payload[490];
+char payload[1505]; // era [490]  
 
 #define PRU_SHAREDMEM 0x00010000
 
@@ -70,14 +70,12 @@ enum receiver_state frame_state = IDLE;
 #define START_STOP_MASK ((STOP_SYMBOL << 20 ) | (START_SYMBOL << 18) | STOP_SYMBOL)
 #define SYNC_SYMBOL_MANCHESTER (0x6665)
 
-int is_a_word(long * manchester_word, int number_of_symbols, unsigned int* temp_detected_word)
-{
-	if(number_of_symbols >= 20)
-	{
-		if(((*manchester_word) & START_STOP_MASK) == (START_STOP_MASK))
-		{
+int is_a_word(long * manchester_word, int number_of_symbols, unsigned int* temp_detected_word){
+	if(number_of_symbols >= 20){
+		if(((*manchester_word) & START_STOP_MASK) == (START_STOP_MASK)){
 			(*temp_detected_word) = ((*manchester_word)>> 2) & 0xFFFF;
-			if((*temp_detected_word) == SYNC_SYMBOL_MANCHESTER) return 2;
+			if((*temp_detected_word) == SYNC_SYMBOL_MANCHESTER)
+				return 2;
 			return 1;  
 		}
 	}
@@ -262,61 +260,55 @@ int main(void) {
     __delay_cycles(200);
     read_adc();
     if(data >= THRESHOLD)
-	data = 1;
+		data = 1;
     else
-	data = 0;
+		data = 0;
 
     if(data > old_data)
-	symbol_level = 1;
+		symbol_level = 1;
     else if(old_data > data)
-	symbol_level = -1;
+		symbol_level = -1;
     else
-	symbol_level = 0;
+		symbol_level = 0;
     old_data = data;
 	  
     //check whether there will be a falling or rising edge and save the edge. 
-    if(symbol_level == 0 || symbol_level == old_symbol_level || (symbol_level != old_symbol_level && stable_samples < 2) )
-    {
-	if(stable_samples < (4 * 4)) // assume the samples per symbol is 4
-	{
-		stable_samples++;
-	}
+    if(symbol_level == 0 || symbol_level == old_symbol_level || (symbol_level != old_symbol_level && stable_samples < 2) ){
+		if(stable_samples < (4 * 4)){ // assume the samples per symbol is 4
+			stable_samples++;
+		}
     }
     // if it is the rising or falling edge
-    else
-    {
-         //we need to have a function to detect edge.
-	 new_word = detect_symbol(&temp_reg, symbol_level, stable_samples, &(dist_last_sync), &detected_word);
-	 if (dist_last_sync > (8 * 4)) //
-	 {
-		dist_last_sync = 32;
-	 }
-	 stable_samples = 0;	
+    else{ //we need to have a function to detect edge.
+         
+	 	new_word = detect_symbol(&temp_reg, symbol_level, stable_samples, &(dist_last_sync), &detected_word);
+	 	if (dist_last_sync > (8 * 4)){
+			dist_last_sync = 32;
+	 	}
+	 	stable_samples = 0;	
     }
     old_symbol_level = symbol_level;
 
     if (new_word == 1){
-	(*clockPointer) = 25;
-	received_data = 0 ;
-	for (int i =0; i < 16; i = i + 2){
-		received_data = received_data << 1;
-		if(((detected_word >> i) & 0x03) == 0x01){
-			received_data |= 0x01;
+		(*clockPointer) = 25;
+		received_data = 0 ;
+		for (int i =0; i < 16; i = i + 2){
+			received_data = received_data << 1;
+			if(((detected_word >> i) & 0x03) == 0x01){
+				received_data |= 0x01;
+			}
+			else{
+				received_data &= ~0x01;
+			}
 		}
-		else{
-			received_data &= ~0x01;
-		}
-	}
-	received_data = received_data & 0xff;
-	new_word = 0;
+		received_data = received_data & 0xff;
+		new_word = 0;
 	
-	byte_added = packet_construct(frame_buffer, &frame_index, &frame_size, &frame_state, received_data);
-	if(byte_added > 0)
-	{
-		frame_buffer[frame_size - 1] = '\0';
-		pru_rpmsg_send(&transport, dst, src, &frame_buffer[1], 490);
-	}
-
+		byte_added = packet_construct(frame_buffer, &frame_index, &frame_size, &frame_state, received_data);
+		if(byte_added > 0){
+			frame_buffer[frame_size - 1] = '\0';
+			pru_rpmsg_send(&transport, dst, src, &frame_buffer[1], 490);
+		}
     }
   }
 }

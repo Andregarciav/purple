@@ -1,4 +1,5 @@
-//
+// Ao modificar as constantes desse arquivo tomar o cuidado em anotar para
+// desfazer
 
 #include "resource_table_1.h"
 #include <am335x/pru_cfg.h>
@@ -44,8 +45,8 @@ long packet_interval = 0 ;
 // Found at linux-x.y.z/include/uapi/linux/virtio_config.h
 #define VIRTIO_CONFIG_S_DRIVER_OK 4
 
-uint8_t payload[RPMSG_BUF_SIZE];
-
+uint8_t payload[1500];   // era essa const. RPMSG_BUF_SIZE
+ 
 #define PRU_SHAREDMEM 0x00010000
 
 
@@ -85,11 +86,9 @@ void modulate_manchester(uint8_t byte)
         __delay_cycles(DELAY);
 }
 
-void send_with_manchester(uint8_t* buff, uint8_t len)
-{
+void send_with_manchester(uint8_t* buff, uint8_t len){
 	uint8_t i = 0;
-	for (; i < len; ++i)
-	{
+	for (; i < len; ++i){
 		modulate_manchester(buff[i]);
 	}
 }
@@ -97,66 +96,63 @@ void send_with_manchester(uint8_t* buff, uint8_t len)
 
 
 int main(void) {
-  __R30 = 0; //  Clear the output pin.
-  struct pru_rpmsg_transport transport;
-  uint16_t src, dst, len, globe_len;
-  volatile uint8_t *status;
+  	__R30 = 0; //  Clear the output pin.
+	struct pru_rpmsg_transport transport;
+	uint16_t src, dst, len, globe_len;
+	volatile uint8_t *status;
 
 	volatile uint32_t gpio;
 	uint32_t send_timeout;
 	uint32_t cpt;
 
 
-	uint8_t tx_buff[100] = { 0xAA, 0xAA, 0xAA, 0xD5, 0x02};
+	uint8_t tx_buff[1505] = { 0xAA, 0xAA, 0xAA, 0xD5, 0x02}; // Era tx_buff[100]
 
-  // Allow OCP master port access by the PRU so the PRU can read external
-  // memories.
-  CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
+	// Allow OCP master port access by the PRU so the PRU can read external
+	// memories.
+	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
 
-  // Clear the status of the PRU-ICSS system event that the ARM will use to
-  // 'kick' us.
-  CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
+	// Clear the status of the PRU-ICSS system event that the ARM will use to
+	// 'kick' us.
+	CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 
-  // Make sure the Linux drivers are ready for RPMsg communication.
-  status = &resourceTable.rpmsg_vdev.status;
-  while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK))
-    ;
+	// Make sure the Linux drivers are ready for RPMsg communication.
+	status = &resourceTable.rpmsg_vdev.status;
+	while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
 
-  // Initialize the RPMsg transport structure.
-  pru_rpmsg_init(&transport, &resourceTable.rpmsg_vring0,
+  	// Initialize the RPMsg transport structure.
+  	pru_rpmsg_init(&transport, &resourceTable.rpmsg_vring0,
                  &resourceTable.rpmsg_vring1, TO_ARM_HOST, FROM_ARM_HOST);
-  //  Block until the channel is established.
-  while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_NAME, CHAN_DESC,
-                           CHAN_PORT) != PRU_RPMSG_SUCCESS)
-    ;
-  //  The following code looks for a specific incoming message via RPMsg.
-  //  This code blocks until the message is successfully received.
-  //  If the correct message is received, the clock is allowed to begin.
-  while (1) {
-    /* Check bit 30 of register R31 to see if the ARM has kicked us */
-    if (__R31 & HOST_INT) {
-      /* Clear the event status */
-      CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
-      /* Receive all available messages, multiple messages can be sent per kick
-       */
-      if (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) ==
-          PRU_RPMSG_SUCCESS) {
-        if (payload[0] == 'g')
-	{
-	  for(int i=0; i < len - 2 ; i++)
-          {
-		tx_buff[i+5] = payload[i+1];
-	  }
-	  globe_len = len + 4;
-	  tx_buff[len + 3] =  0x03;
-	  packet_time = 2 * globe_len * 10 * DELAY;
-	  packet_interval = packet_time + globe_len * 10 * DELAY; 
+  	//  Block until the channel is established.
+  	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_NAME, CHAN_DESC,
+                           CHAN_PORT) != PRU_RPMSG_SUCCESS);
 
-          break;
-	}
-      }
-    }
-  }
+	//  The following code looks for a specific incoming message via RPMsg.
+	//  This code blocks until the message is successfully received.
+	//  If the correct message is received, the clock is allowed to begin.
+  	while (1) {
+    	/* Check bit 30 of register R31 to see if the ARM has kicked us */
+    	if (__R31 & HOST_INT) {
+      		/* Clear the event status */
+      		CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
+      		/* Receive all available messages, multiple messages can be sent per kick
+       		*/
+      		if (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) ==
+          		PRU_RPMSG_SUCCESS) {
+        		if (payload[0] == 'g'){
+	  				for(int i=0; i < len - 2 ; i++){
+						tx_buff[i+5] = payload[i+1];
+	  				}
+					globe_len = len + 4;
+					tx_buff[len + 3] =  0x03;
+					packet_time = 2 * globe_len * 10 * DELAY;
+					packet_interval = packet_time + globe_len * 10 * DELAY; 
+
+          			break;
+				}
+      		}
+    	}
+  	}
 
   //  The following is the code for the clock which is used to drive the SPI in
   //  PRU0.  The clock rate is approximately 8 kHz.
@@ -168,30 +164,24 @@ int main(void) {
   //  *clockPointer = 0; //  Clear this memory location.
 
 
-        cpt = 0;
+    cpt = 0;
 	gpio = 0x00F0;
 	//send_timeout = INTERVAL;	
 	send_timeout = packet_interval;
 	PRU1_CTRL.CTRL_bit.CTR_EN = 1;
 
-	while (1)
-	{
-				
-	       if (PRU1_CTRL.CYCLE_bit.CYCLECOUNT < 0xFFFFFFFF)
-                {
-			if (PRU1_CTRL.CYCLE_bit.CYCLECOUNT >= send_timeout)
-			{
+	while (1){
+       if (PRU1_CTRL.CYCLE_bit.CYCLECOUNT < 0xFFFFFFFF){
+			if (PRU1_CTRL.CYCLE_bit.CYCLECOUNT >= send_timeout){
 				send_with_manchester(tx_buff, globe_len);
 				send_timeout = PRU1_CTRL.CYCLE_bit.CYCLECOUNT + packet_interval - packet_time;
 				cpt = cpt+1;
 			}
-	       		if(cpt >= PACKET_CNT)
-			{
+	       	if(cpt >= PACKET_CNT){
 				__halt();
 			}	
-               	}
-		else // reset cycle counter if reached 0xFFFFFFFF (does not wrap around automatically)
-		{
+        }
+		else{ // reset cycle counter if reached 0xFFFFFFFF (does not wrap around automatically)
 			PRU1_CTRL.CYCLE_bit.CYCLECOUNT = 0;
 			PRU1_CTRL.CTRL_bit.CTR_EN = 1;
 		}
