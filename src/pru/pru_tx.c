@@ -45,7 +45,7 @@ long packet_interval = 0 ;
 // Found at linux-x.y.z/include/uapi/linux/virtio_config.h
 #define VIRTIO_CONFIG_S_DRIVER_OK 4
 
-uint8_t payload[1500];   // era essa const. RPMSG_BUF_SIZE
+uint8_t payload[RPMSG_BUF_SIZE];   // era essa const. RPMSG_BUF_SIZE
  
 #define PRU_SHAREDMEM 0x00010000
 
@@ -106,7 +106,7 @@ int main(void) {
 	uint32_t cpt;
 
 
-	uint8_t tx_buff[1505] = { 0xAA, 0xAA, 0xAA, 0xD5, 0x02}; // Era tx_buff[100]
+	uint8_t tx_buff[100] = { 0xAA, 0xAA, 0xAA, 0xD5, 0x02}; // Era tx_buff[100]
 
 	// Allow OCP master port access by the PRU so the PRU can read external
 	// memories.

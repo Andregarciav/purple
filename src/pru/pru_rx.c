@@ -31,7 +31,7 @@
 #define VIRTIO_CONFIG_S_DRIVER_OK 4
 
 //  Buffer used for PRU to ARM communication.
-char payload[1505]; // era [490]  
+char payload[490]; // era [490]  
 
 #define PRU_SHAREDMEM 0x00010000
 
